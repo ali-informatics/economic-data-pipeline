@@ -1,30 +1,60 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="5-Decade Econ Tracker", layout="wide")
+# Set page config for a professional look
+st.set_page_config(page_title="Ali Informatics | Econ-Tracker", layout="wide")
 
-df = pd.read_csv('data/economy_data.csv')
-df['Date'] = pd.to_datetime(df['Date'])
+st.title("📈 Global Economic Data Pipeline")
+st.markdown("Automated historical analysis and currency tracking.")
 
-st.title("🌐 Global Economic History: 1970 - 2026")
+# 1. Load Data
+@st.cache_data
+def load_data():
+    df = pd.read_csv('data/economy_data.csv')
+    # Ensure Date is actually a datetime object for better sorting
+    df['Date'] = pd.to_datetime(df['Date'])
+    return df
 
-category = st.radio("**Select Metric:**", ["Currency (14 Days)", "GDP (50 Years)", "Inflation (50 Years)"], horizontal=True)
+try:
+    df = load_data()
 
-if "Currency" in category:
-    sub_df = df[df['Type'] == 'Forex'].sort_values('Date')
-    st.metric("EUR/USD", f"${sub_df['EUR_USD'].iloc[-1]:.4f}")
-    st.line_chart(sub_df.set_index('Date')[['EUR_USD', 'USD_EUR']])
+    # 2. Sidebar Navigation
+    st.sidebar.header("Dashboard Controls")
+    selection = st.sidebar.radio("Select Data Stream:", ["Forex", "Macro"])
 
-else:
-    metric_name = "GDP_Growth" if "GDP" in category else "Inflation"
-    # Filter for Macro data and the specific metric
-    macro_df = df[(df['Type'] == 'Macro') & (df['Metric'] == metric_name)]
-    
-    # Pivot so we have USA and DEU as columns for the chart
-    chart_pivot = macro_df.pivot(index='Date', columns='Country', values='Value')
-    
-    st.subheader(f"Historical {category} Trends")
-    st.line_chart(chart_pivot)
+    # 3. Filtering Logic
+    filtered_df = df[df['Type'] == selection].sort_values('Date', ascending=False)
 
-if st.checkbox("Show Raw Data", value=True):
-    st.dataframe(df, hide_index=True)
+    # 4. Display Content based on Selection
+    if selection == "Forex":
+        st.subheader("💱 EUR/USD Exchange Rate (Last 14 Days)")
+        
+        # Display the Graph
+        st.line_chart(filtered_df, x='Date', y='EUR_USD')
+        
+        # Display CLEAN Table (Only Currency Columns)
+        st.write("### Raw Exchange Data")
+        st.dataframe(filtered_df[['Date', 'EUR_USD', 'USD_EUR']], use_container_width=True)
+
+    else:
+        st.subheader("🌎 Macroeconomic Indicators (5 Decades)")
+        
+        # Sub-filter for Macro (so the graph doesn't look like a mess)
+        metric = st.selectbox("Choose Metric:", filtered_df['Metric'].unique())
+        country = st.selectbox("Choose Country:", filtered_df['Country'].unique())
+        
+        plot_df = filtered_df[(filtered_df['Metric'] == metric) & (filtered_df['Country'] == country)]
+        
+        # Display the Graph
+        st.line_chart(plot_df, x='Date', y='Value')
+        
+        # Display CLEAN Table (Only Macro Columns)
+        st.write(f"### Raw {metric} Data: {country}")
+        st.dataframe(plot_df[['Date', 'Country', 'Metric', 'Value']], use_container_width=True)
+
+except Exception as e:
+    st.error(f"Waiting for data pipeline to complete... Error: {e}")
+    st.info("If you just pushed the code, wait 1 minute for the GitHub Action to generate the CSV.")
+
+st.sidebar.markdown("---")
+st.sidebar.info("Data automatically updated via GitHub Actions.")
