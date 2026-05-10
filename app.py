@@ -39,18 +39,34 @@ try:
     else:
         st.subheader("🌎 Macroeconomic Indicators (5 Decades)")
         
-        # Sub-filter for Macro (so the graph doesn't look like a mess)
+        # 1. Metric Selection (Keep as single choice so we compare same units)
         metric = st.selectbox("Choose Metric:", filtered_df['Metric'].unique())
-        country = st.selectbox("Choose Country:", filtered_df['Country'].unique())
         
-        plot_df = filtered_df[(filtered_df['Metric'] == metric) & (filtered_df['Country'] == country)]
+        # 2. THE FIX: Multi-select for Countries
+        selected_countries = st.multiselect(
+            "Choose Countries to Compare:", 
+            options=filtered_df['Country'].unique(),
+            default=filtered_df['Country'].unique()[:1] # Defaults to the first country
+        )
         
-        # Display the Graph
-        st.line_chart(plot_df, x='Date', y='Value')
-        
-        # Display CLEAN Table (Only Macro Columns)
-        st.write(f"### Raw {metric} Data: {country}")
-        st.dataframe(plot_df[['Date', 'Country', 'Metric', 'Value']], use_container_width=True)
+        if selected_countries:
+            # Filter data for selected metric and countries
+            plot_df = filtered_df[
+                (filtered_df['Metric'] == metric) & 
+                (filtered_df['Country'].isin(selected_countries))
+            ]
+            
+            # Pivot the data so each country has its own column for the chart
+            chart_data = plot_df.pivot(index='Date', columns='Country', values='Value')
+            
+            # Display the Multi-Line Graph
+            st.line_chart(chart_data)
+            
+            # Display the Table
+            st.write(f"### Raw {metric} Data")
+            st.dataframe(plot_df[['Date', 'Country', 'Metric', 'Value']], use_container_width=True)
+        else:
+            st.warning("Please select at least one country to view the graph.")
 
 except Exception as e:
     st.error(f"Waiting for data pipeline to complete... Error: {e}")
