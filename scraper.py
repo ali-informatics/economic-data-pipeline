@@ -1,40 +1,38 @@
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
-# Create the data directory if it doesn't exist
 os.makedirs('data', exist_ok=True)
 
 def fetch_data():
-    # 1. Fetch Exchange Rates (Base: EUR)
-    # Using a public API for simplicity
+    # 1. Fetch EUR Base Rates
     url = "https://open.er-api.com/v6/latest/EUR"
     response = requests.get(url).json()
     
-    rates = {
-        "Date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    # Force UTC time formatting
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+    
+    # Exact requested columns
+    data_row = {
+        "Date": now_utc,
         "EUR_USD": response['rates'].get('USD'),
-        "EUR_GBP": response['rates'].get('GBP'),
-        "EUR_JPY": response['rates'].get('JPY'),
-        "USD_EUR": 1 / response['rates'].get('USD')
+        "USD_EUR": 1 / response['rates'].get('USD'),
+        "Germany_Inflation_Rate": 2.2,  # Numeric dummy data for charts
+        "US_Inflation_Rate": 3.4,
+        "Germany_GDP_Growth": 0.2,
+        "US_GDP_Growth": 2.5
     }
-
-    # 2. Add placeholders for Economic Indicators (GDP/Inflation)
-    # In a real scenario, you'd use a FRED API key here
-    rates["US_Inflation_Rate"] = "3.4%"  # Example data point
-    rates["Germany_GDP_Growth"] = "0.2%" 
     
-    df = pd.DataFrame([rates])
+    df = pd.DataFrame([data_row])
     
-    # 3. Save to CSV (Append mode)
     file_path = 'data/economy_data.csv'
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
     else:
         df.to_csv(file_path, mode='a', header=False, index=False)
     
-    print(f"Successfully updated data at {rates['Date']}")
+    print(f"Successfully updated data at {data_row['Date']} UTC")
 
 if __name__ == "__main__":
     fetch_data()
