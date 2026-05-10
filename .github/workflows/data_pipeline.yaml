@@ -2,20 +2,23 @@ name: Economic Data Pipeline
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight
-  workflow_dispatch:   # Allows you to run it manually with one click
+    - cron: '0 0 * * *'
+  workflow_dispatch: 
+
+permissions:
+  contents: write  # Explicitly gives the script permission to save data
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Updated version
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Updated version
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pip install pandas requests
@@ -25,8 +28,8 @@ jobs:
 
       - name: Commit and Push
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/economy_data.csv
           git commit -m "Automated Data Update: $(date)" || exit 0
           git push
