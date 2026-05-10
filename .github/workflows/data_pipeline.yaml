@@ -33,5 +33,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/economy_data.csv
+          # The '|| exit 0' tells GitHub: "If there is nothing new to save, don't panic."
           git commit -m "Automated Data Update: $(date)" || exit 0
-          git push
+          git push || echo "No changes to push"
